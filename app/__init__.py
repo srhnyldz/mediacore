@@ -1,0 +1,2 @@
+"""YLZ MediaCore uygulama paketi."""
+

@@ -1,0 +1,2 @@
+"""Ortak cekirdek ayarlari."""
+

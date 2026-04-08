@@ -1,0 +1,58 @@
+services:
+  api:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.api
+    container_name: ylz-mediacore-api
+    restart: unless-stopped
+    env_file:
+      - .env
+    ports:
+      - "8000:8000"
+    volumes:
+      - downloads_data:/tmp/downloads
+    depends_on:
+      redis:
+        condition: service_started
+    command:
+      - uvicorn
+      - app.main:app
+      - --host
+      - 0.0.0.0
+      - --port
+      - "8000"
+
+  worker:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.worker
+    container_name: ylz-mediacore-worker
+    restart: unless-stopped
+    env_file:
+      - .env
+    volumes:
+      - downloads_data:/tmp/downloads
+    depends_on:
+      redis:
+        condition: service_started
+    command:
+      - celery
+      - -A
+      - app.workers.worker.celery_app
+      - worker
+      - --loglevel=info
+      - --queues=download,convert
+
+  redis:
+    image: redis:7-alpine
+    container_name: ylz-mediacore-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+
+volumes:
+  downloads_data:
+  redis_data:
+
