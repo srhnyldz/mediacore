@@ -1,10 +1,13 @@
 from pathlib import Path
 
-from fastapi import APIRouter, HTTPException, Request, Response, status
+from fastapi import APIRouter, File, Form, HTTPException, Request, Response, UploadFile, status
 from fastapi.responses import FileResponse
 
 from app.core.config import settings
 from app.schemas.task import (
+    ConversionType,
+    ConvertTaskAcceptedResponse,
+    ConvertTaskRequest,
     DownloadTaskAcceptedResponse,
     DownloadTaskRequest,
     TaskStatusResponse,
@@ -14,7 +17,9 @@ from app.services.rate_limit_service import (
     enforce_download_rate_limit,
 )
 from app.services.task_service import (
+    TaskConflictError,
     TaskNotFoundError,
+    enqueue_convert_upload_task,
     enqueue_download_task,
     get_task_status,
 )
@@ -47,6 +52,52 @@ async def create_download_task(
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
             detail=f"Gorev kuyruga eklenemedi: {exc}",
+        ) from exc
+
+
+@router.post(
+    "/conversions",
+    response_model=ConvertTaskAcceptedResponse,
+    status_code=status.HTTP_202_ACCEPTED,
+)
+async def create_convert_task(
+    request: Request,
+    response: Response,
+    conversion_type: ConversionType = Form(...),
+    output_format: str = Form(...),
+    file: UploadFile = File(...),
+) -> ConvertTaskAcceptedResponse:
+    try:
+        enforce_download_rate_limit(request=request)
+        payload = ConvertTaskRequest(
+            conversion_type=conversion_type,
+            output_format=output_format,
+        )
+        return enqueue_convert_upload_task(
+            request_data=payload,
+            upload_file=file,
+        )
+    except RateLimitExceededError as exc:
+        response.headers["Retry-After"] = str(exc.retry_after_seconds)
+        raise HTTPException(
+            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+            detail=str(exc),
+            headers={"Retry-After": str(exc.retry_after_seconds)},
+        ) from exc
+    except TaskConflictError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=str(exc),
+        ) from exc
+    except ValueError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail=str(exc),
+        ) from exc
+    except Exception as exc:  # pragma: no cover - son savunma katmani
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail=f"Convert gorevi kuyruga eklenemedi: {exc}",
         ) from exc
 
 

@@ -1,6 +1,9 @@
-from celery import states
+from io import BytesIO
 
-from app.schemas.task import DownloadTaskRequest
+from celery import states
+from fastapi import UploadFile
+
+from app.schemas.task import ConvertTaskRequest, DownloadTaskRequest, TaskKind
 from app.services import task_service
 
 
@@ -29,8 +32,71 @@ def test_enqueue_download_task_seeds_pending_state(monkeypatch) -> None:
     )
 
     assert response.task_id == "task-123"
+    assert response.task_kind == TaskKind.DOWNLOAD
     assert captured["apply_async"]["queue"] == task_service.settings.celery_download_queue
     assert captured["store_result"]["state"] == states.PENDING
+
+
+def test_enqueue_convert_upload_task_persists_file_and_seeds_pending_state(monkeypatch, tmp_path) -> None:
+    captured = {}
+    monkeypatch.setattr(task_service.settings, "download_root", str(tmp_path))
+
+    class DummyAsyncResult:
+        id = "convert-123"
+
+    def fake_apply_async(*args, **kwargs):
+        captured["apply_async"] = kwargs
+        return DummyAsyncResult()
+
+    def fake_store_result(task_id, payload, state):
+        captured["store_result"] = {
+            "task_id": task_id,
+            "payload": payload,
+            "state": state,
+        }
+
+    monkeypatch.setattr(task_service.convert_task, "apply_async", fake_apply_async)
+    monkeypatch.setattr(task_service.celery_app.backend, "store_result", fake_store_result)
+    monkeypatch.setattr(task_service, "uuid4", lambda: "convert-123")
+
+    upload = UploadFile(
+        file=BytesIO(b"image-bytes"),
+        filename="example.jpg",
+        headers={"content-type": "image/jpeg"},
+    )
+
+    response = task_service.enqueue_convert_upload_task(
+        request_data=ConvertTaskRequest(conversion_type="image", output_format="png"),
+        upload_file=upload,
+    )
+
+    assert response.task_id == "convert-123"
+    assert response.task_kind == TaskKind.CONVERT
+    assert captured["apply_async"]["queue"] == task_service.settings.celery_convert_queue
+    assert captured["apply_async"]["task_id"] == "convert-123"
+    assert captured["apply_async"]["kwargs"]["payload"]["source_file_name"] == "example.jpg"
+    assert captured["store_result"]["state"] == states.PENDING
+
+
+def test_enqueue_convert_upload_task_raises_for_empty_file(monkeypatch, tmp_path) -> None:
+    monkeypatch.setattr(task_service.settings, "download_root", str(tmp_path))
+    monkeypatch.setattr(task_service, "uuid4", lambda: "convert-123")
+
+    upload = UploadFile(
+        file=BytesIO(b""),
+        filename="empty.pdf",
+        headers={"content-type": "application/pdf"},
+    )
+
+    try:
+        task_service.enqueue_convert_upload_task(
+            request_data=ConvertTaskRequest(conversion_type="pdf", output_format="jpg"),
+            upload_file=upload,
+        )
+    except task_service.TaskConflictError as exc:
+        assert "empty" in str(exc).lower()
+    else:  # pragma: no cover
+        raise AssertionError("TaskConflictError bekleniyordu.")
 
 
 def test_get_task_status_raises_for_unknown_task(monkeypatch) -> None:
@@ -56,12 +122,16 @@ def test_get_task_status_returns_success_payload(monkeypatch) -> None:
             "status": states.SUCCESS,
             "result": {
                 "progress_percent": 100,
-                "message": "Indirme tamamlandi.",
+                "message": "Donusturme tamamlandi.",
+                "task_kind": TaskKind.CONVERT.value,
                 "result": {
-                    "file_path": "/tmp/downloads/task-123/video.mp4",
-                    "file_name": "video.mp4",
+                    "file_path": "/tmp/downloads/task-123/converted.png",
+                    "file_name": "converted.png",
                     "file_size_bytes": 2048,
-                    "source_url": "https://example.com/video",
+                    "source_file_name": "example.jpg",
+                    "output_format": "png",
+                    "conversion_type": "image",
+                    "generated_files_count": 1,
                 },
             },
         },
@@ -70,8 +140,9 @@ def test_get_task_status_returns_success_payload(monkeypatch) -> None:
     response = task_service.get_task_status("task-123")
 
     assert response.status == states.SUCCESS
+    assert response.task_kind == TaskKind.CONVERT
     assert response.result is not None
-    assert response.result.file_name == "video.mp4"
+    assert response.result.file_name == "converted.png"
     assert response.result.download_url == "/api/v1/tasks/task-123/download"
 
 
@@ -83,9 +154,10 @@ def test_get_task_status_maps_error_state_to_failure(monkeypatch) -> None:
             "status": "ERROR",
             "result": {
                 "progress_percent": 0,
-                "message": "Indirme basarisiz oldu.",
-                "error_code": "DOWNLOAD_FAILED",
-                "error_message": "yt-dlp failure",
+                "message": "Donusturme basarisiz oldu.",
+                "task_kind": TaskKind.CONVERT.value,
+                "error_code": "CONVERT_FAILED",
+                "error_message": "bad file",
                 "result": None,
             },
         },
@@ -94,4 +166,4 @@ def test_get_task_status_maps_error_state_to_failure(monkeypatch) -> None:
     response = task_service.get_task_status("task-err")
 
     assert response.status == states.FAILURE
-    assert response.error_code == "DOWNLOAD_FAILED"
+    assert response.error_code == "CONVERT_FAILED"

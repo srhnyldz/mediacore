@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import re
-import subprocess
 from pathlib import Path
 from typing import Any
 
@@ -11,12 +10,17 @@ from yt_dlp import YoutubeDL
 
 from app.core.celery_app import celery_app
 from app.core.config import settings
-from app.schemas.task import DownloadTaskRequest
+from app.schemas.task import DownloadTaskRequest, TaskKind
+from app.services.media_service import (
+    AUDIO_OUTPUT_FORMATS,
+    VIDEO_OUTPUT_FORMATS,
+    build_ffmpeg_command as _build_ffmpeg_command,
+    convert_media_file as _convert_media_file,
+    normalize_output_format as _normalize_output_format,
+    should_convert_media as _should_convert_media,
+)
 from app.utils.filename import build_unique_path, sanitize_filename
 
-AUDIO_OUTPUT_FORMATS = {"mp3", "wav"}
-VIDEO_OUTPUT_FORMATS = {"avi", "mp4", "webm"}
-DEFAULT_OUTPUT_FORMAT = "avi"
 IGNORED_DOWNLOAD_SUFFIXES = {".part", ".webp", ".ytdl"}
 
 
@@ -36,6 +40,7 @@ def download_task(self: Any, payload: dict[str, Any]) -> dict[str, Any]:
             meta={
                 "progress_percent": 0,
                 "message": "Indirme hazirlaniyor.",
+                "task_kind": TaskKind.DOWNLOAD.value,
                 "result": None,
             },
         )
@@ -69,6 +74,7 @@ def download_task(self: Any, payload: dict[str, Any]) -> dict[str, Any]:
                         else None,
                         "source_url": str(request.url),
                     },
+                    "task_kind": TaskKind.DOWNLOAD.value,
                 },
             )
             downloaded_path = _convert_media_file(
@@ -90,6 +96,7 @@ def download_task(self: Any, payload: dict[str, Any]) -> dict[str, Any]:
         return {
             "progress_percent": 100,
             "message": "Indirme tamamlandi.",
+            "task_kind": TaskKind.DOWNLOAD.value,
             "result": {
                 "file_path": str(safe_path),
                 "file_name": safe_path.name,
@@ -102,6 +109,7 @@ def download_task(self: Any, payload: dict[str, Any]) -> dict[str, Any]:
         error_payload = {
             "progress_percent": 0,
             "message": "Indirme basarisiz oldu.",
+            "task_kind": TaskKind.DOWNLOAD.value,
             "result": None,
             "error_code": "DOWNLOAD_FAILED",
             "error_message": str(exc),
@@ -138,6 +146,7 @@ def _build_progress_hook(task: Any, source_url: str):
             meta={
                 "progress_percent": percent,
                 "message": message,
+                "task_kind": TaskKind.DOWNLOAD.value,
                 "result": result_payload,
             },
         )
@@ -200,11 +209,6 @@ def _calculate_progress_percent(data: dict[str, Any]) -> int:
 
     return 0
 
-
-def _normalize_output_format(output_format: str | None) -> str:
-    return (output_format or DEFAULT_OUTPUT_FORMAT).strip().lower()
-
-
 def _resolve_downloaded_file(
     info: dict[str, Any],
     task_dir: Path,
@@ -263,111 +267,3 @@ def _is_ignored_download_file(path: Path) -> bool:
     if suffix in IGNORED_DOWNLOAD_SUFFIXES:
         return True
     return ".temp." in path.name
-
-
-def _should_convert_media(source_path: Path, output_format: str) -> bool:
-    return source_path.suffix.lower() != f".{output_format}"
-
-
-def _convert_media_file(source_path: Path, task_dir: Path, output_format: str) -> Path:
-    target_path = build_unique_path(task_dir / f"{source_path.stem}.{output_format}")
-    command = _build_ffmpeg_command(
-        source_path=source_path,
-        target_path=target_path,
-        output_format=output_format,
-    )
-
-    completed = subprocess.run(
-        command,
-        capture_output=True,
-        text=True,
-        check=False,
-    )
-    if completed.returncode != 0:
-        stderr_tail = (completed.stderr or "").strip().splitlines()[-8:]
-        message = " | ".join(stderr_tail) if stderr_tail else "Unknown FFmpeg error."
-        raise RuntimeError(f"FFmpeg conversion failed: {message}")
-
-    return target_path
-
-
-def _build_ffmpeg_command(
-    source_path: Path,
-    target_path: Path,
-    output_format: str,
-) -> list[str]:
-    base_command = ["ffmpeg", "-y", "-i", str(source_path)]
-
-    if output_format == "avi":
-        return [
-            *base_command,
-            "-c:v",
-            "mpeg4",
-            "-q:v",
-            "5",
-            "-c:a",
-            "libmp3lame",
-            "-b:a",
-            "192k",
-            str(target_path),
-        ]
-
-    if output_format == "mp4":
-        return [
-            *base_command,
-            "-c:v",
-            "libx264",
-            "-preset",
-            "fast",
-            "-crf",
-            "23",
-            "-c:a",
-            "aac",
-            "-b:a",
-            "192k",
-            "-movflags",
-            "+faststart",
-            str(target_path),
-        ]
-
-    if output_format == "webm":
-        return [
-            *base_command,
-            "-c:v",
-            "libvpx",
-            "-deadline",
-            "realtime",
-            "-cpu-used",
-            "8",
-            "-b:v",
-            "0",
-            "-c:a",
-            "libopus",
-            "-b:a",
-            "128k",
-            "-threads",
-            "4",
-            str(target_path),
-        ]
-
-    if output_format == "mp3":
-        return [
-            *base_command,
-            "-vn",
-            "-c:a",
-            "libmp3lame",
-            "-b:a",
-            "192k",
-            str(target_path),
-        ]
-
-    if output_format == "wav":
-        return [
-            *base_command,
-            "-vn",
-            "-c:a",
-            "pcm_s16le",
-            str(target_path),
-        ]
-
-    raise ValueError(f"Unsupported output format: {output_format}")

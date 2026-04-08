@@ -7,9 +7,9 @@
 - Surum cizgisini `v0.1.0` ile baslat
 
 ## Faz 2 - Converter Core
-- `convert_task` gercek FFmpeg akisina baglanacak
-- Donusturme profilleri ve cikti format stratejileri eklenecek
-- Download ve convert task chaining / routing gelistirilecek
+- Upload tabanli `convert_task` image ve PDF donusumleri icin olgunlastirilacak
+- Donusturme profilleri, dosya tipi dogrulama ve cikti paketleme stratejileri gelistirilecek
+- Yeni converter tipleri ve gerekiyorsa ofis/dokuman donusum motorlari eklenecek
 
 ## Faz 3 - Storage ve Delivery
 - Gecici dosya temizleme gorevleri eklenecek

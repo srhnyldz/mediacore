@@ -47,5 +47,11 @@ async def readiness(response: Response) -> dict[str, object]:
 
 @app.get("/", include_in_schema=False)
 async def serve_frontend() -> FileResponse:
-    # Faz 1.2 MVP arayuzunu tek sayfa olarak servis ediyoruz.
+    # Download panelini ayri sayfa olarak servis ediyoruz.
     return FileResponse(web_dir / "index.html")
+
+
+@app.get("/convert", include_in_schema=False)
+async def serve_converter_frontend() -> FileResponse:
+    # Upload tabanli donusturucuyu ayri sayfada tutuyoruz.
+    return FileResponse(web_dir / "convert.html")

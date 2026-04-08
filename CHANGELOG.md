@@ -2,6 +2,19 @@
 
 Bu proje [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) yaklaşımına benzer sade bir format kullanır.
 
+## [Unreleased]
+
+## [0.5.0] - 2026-04-08
+
+### Added
+- Gercek upload tabanli `convert_task` worker akisi ve `POST /api/v1/tasks/conversions` endpoint'i eklendi.
+- Ust menuden ayrilan `/convert` sayfasi, conversion type secimi ve dosya upload akisi eklendi.
+- Step 05 converter core dokumani ile converter API ve worker testleri eklendi.
+
+### Changed
+- Download ve convert task durum yanitlari `task_kind`, source file ve generated files metadata alanlariyla zenginlestirildi.
+- Converter mantigi task-ID tabanli medya transcode yerine image/pdf upload donusum modeline cekildi.
+
 ## [0.4.0] - 2026-04-08
 
 ### Added

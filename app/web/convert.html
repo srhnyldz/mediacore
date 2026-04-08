@@ -3,10 +3,10 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>YLZ MediaCore Download</title>
+    <title>YLZ MediaCore Converter</title>
     <link rel="stylesheet" href="/assets/styles.css" />
   </head>
-  <body data-page="download">
+  <body data-page="convert">
     <div class="page-shell">
       <div class="background-orb orb-one"></div>
       <div class="background-orb orb-two"></div>
@@ -15,65 +15,64 @@
         <nav class="top-nav">
           <a class="nav-brand" href="/">YLZ MediaCore</a>
           <div class="nav-links">
-            <a class="nav-link nav-link-active" href="/">Downloader</a>
-            <a class="nav-link" href="/convert">Converter</a>
+            <a class="nav-link" href="/">Downloader</a>
+            <a class="nav-link nav-link-active" href="/convert">Converter</a>
           </div>
         </nav>
 
-        <p class="eyebrow">Downloader</p>
-        <h1>Download remote media into the format you need.</h1>
+        <p class="eyebrow">Converter</p>
+        <h1>Upload a file and convert it into a new format.</h1>
         <p class="hero-copy">
-          Submit a supported media URL, choose the output format, and watch the
-          task finish in real time from the same control surface.
+          Choose the converter type, upload a local file, and let the worker
+          generate the converted asset in the background.
         </p>
       </header>
 
       <main class="dashboard">
         <section class="panel form-panel">
           <div class="panel-heading">
-            <p class="panel-kicker">Remote Intake</p>
-            <h2>Create a download job</h2>
+            <p class="panel-kicker">Local Intake</p>
+            <h2>Create a convert job</h2>
           </div>
 
-          <form id="download-form" class="download-form">
+          <form id="convert-form" class="download-form">
             <label class="field">
-              <span>Media URL</span>
-              <input
-                id="url"
-                name="url"
-                type="url"
-                placeholder="https://www.youtube.com/watch?v=..."
-                required
-              />
+              <span>Converter Type</span>
+              <select id="conversion_type" name="conversion_type">
+                <option value="image" selected>Image Converter</option>
+                <option value="pdf">PDF Converter</option>
+              </select>
             </label>
 
             <div class="field-grid">
               <label class="field">
-                <span>Platform Hint</span>
-                <select id="platform_hint" name="platform_hint">
-                  <option value="">Auto detect</option>
-                  <option value="youtube">YouTube</option>
-                  <option value="instagram">Instagram</option>
-                  <option value="twitter">Twitter / X</option>
-                  <option value="facebook">Facebook</option>
-                  <option value="linkedin">LinkedIn</option>
+                <span>Target Format</span>
+                <select id="convert_output_format" name="output_format">
+                  <option value="png" selected>PNG</option>
+                  <option value="jpg">JPG</option>
+                  <option value="webp">WEBP</option>
                 </select>
               </label>
 
               <label class="field">
-                <span>Output Format</span>
-                <select id="output_format" name="output_format">
-                  <option value="avi" selected>AVI</option>
-                  <option value="mp4">MP4</option>
-                  <option value="mp3">MP3</option>
-                  <option value="webm">WEBM</option>
-                  <option value="wav">WAV</option>
-                </select>
+                <span>Upload File</span>
+                <input
+                  id="convert_file"
+                  name="file"
+                  type="file"
+                  required
+                  accept=".jpg,.jpeg,.png,.webp,.pdf"
+                />
               </label>
             </div>
 
-            <button id="submit-button" class="submit-button" type="submit">
-              Start Download Task
+            <p class="form-note">
+              Image converter supports JPG, PNG and WEBP. PDF converter renders
+              PDF pages into JPG or PNG. Multi-page PDF results are bundled as a ZIP file.
+            </p>
+
+            <button id="convert-submit-button" class="submit-button" type="submit">
+              Start Convert Task
             </button>
           </form>
         </section>
@@ -85,8 +84,8 @@
           </div>
 
           <div id="empty-state" class="empty-state">
-            <p>No task submitted yet.</p>
-            <span>Your next download will appear here with live progress.</span>
+            <p>No conversion task submitted yet.</p>
+            <span>Your next conversion will appear here with live progress.</span>
           </div>
 
           <div id="task-card" class="task-card hidden">

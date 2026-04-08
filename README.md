@@ -1,15 +1,16 @@
 # YLZ MediaCore
 
-YLZ MediaCore is a Docker-first backend foundation for a future SaaS product that downloads media from supported social platforms and prepares the system for later conversion workflows.
+YLZ MediaCore is a Docker-first backend foundation for a future SaaS product that downloads media from supported social platforms and converts uploaded files through a separate worker-driven pipeline.
 
 ## Highlights
 
 - FastAPI-based API service for accepting download requests
-- Browser-based control panel served directly from FastAPI
+- Browser-based downloader and converter panels served directly from FastAPI
 - Celery worker service separated from the API process
 - Redis used as broker and result backend
 - `yt-dlp` integration for media retrieval
-- `ffmpeg` baked into the worker image for future conversion pipelines
+- `ffmpeg` baked into the worker image for media processing
+- Pillow and PyMuPDF support for upload-based image and PDF conversion
 - Shared temporary download volume for API and worker coordination
 
 ## Project Structure
@@ -25,7 +26,8 @@ YLZ MediaCore is a Docker-first backend foundation for a future SaaS product tha
 1. Copy `.env.example` to `.env`.
 2. Build and start the stack with `docker compose up --build`.
 3. Open the web panel at `http://localhost:8000/`.
-4. Open the API docs at `http://localhost:8000/docs`.
+4. Open the converter panel at `http://localhost:8000/convert`.
+5. Open the API docs at `http://localhost:8000/docs`.
 
 ## Local Validation
 
@@ -40,16 +42,27 @@ YLZ MediaCore is a Docker-first backend foundation for a future SaaS product tha
 ## Core Endpoints
 
 - `POST /api/v1/tasks/downloads`: enqueue a new download task
+- `POST /api/v1/tasks/conversions`: upload a local file and enqueue a conversion task
 - `GET /api/v1/tasks/{task_id}`: fetch the current task status and result metadata
+- `GET /api/v1/tasks/{task_id}/download`: download the completed task output
 - `GET /health`: lightweight liveness endpoint for orchestration
 - `GET /ready`: readiness probe with Redis and shared storage checks
 
 ## Web MVP
 
-- Submit media URLs from a browser form
-- Choose optional platform hint and output format fields
+- Use a top navigation bar to switch between downloader and converter pages
+- Submit media URLs from the downloader page
+- Choose a conversion type, upload a file, and convert it from the dedicated converter page
+- Choose platform hint and output format fields on the downloader page
+- Choose conversion type and target format fields on the converter page
 - Watch the task status and progress without leaving the page
 - Inspect returned file metadata, failure details, and a direct download link
+
+## Supported Conversion Types
+
+- Image converter: `jpg`, `jpeg`, `png`, `webp` input to `jpg`, `png`, `webp`
+- PDF converter: `pdf` input to `jpg` or `png`
+- Multi-page PDF conversions are bundled as a `.zip` archive of rendered pages
 
 ## Runtime Hardening
 
@@ -66,7 +79,7 @@ YLZ MediaCore is a Docker-first backend foundation for a future SaaS product tha
 
 ## Versioning
 
-This repository is currently at `v0.4.0` and follows `MAJOR.MINOR.PATCH`.
+This repository is currently at `v0.5.0` and follows `MAJOR.MINOR.PATCH`.
 
 ## Legal Notice
 

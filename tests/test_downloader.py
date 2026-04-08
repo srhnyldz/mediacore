@@ -1,6 +1,7 @@
 from pathlib import Path
 from types import SimpleNamespace
 
+from app.services import media_service
 from app.tasks import downloader
 
 
@@ -141,7 +142,7 @@ def test_convert_media_file_raises_with_ffmpeg_stderr(monkeypatch, tmp_path: Pat
         assert check is False
         return FailedProcess()
 
-    monkeypatch.setattr(downloader.subprocess, "run", fake_run)
+    monkeypatch.setattr(media_service.subprocess, "run", fake_run)
 
     try:
         downloader._convert_media_file(source_path, tmp_path, "avi")
@@ -185,6 +186,7 @@ def test_download_task_returns_success_payload(monkeypatch, tmp_path: Path) -> N
     assert result["progress_percent"] == 100
     assert result["result"]["file_name"] == "Title.mp4"
     assert result["result"]["output_format"] == "mp4"
+    assert result["task_kind"] == "download"
     assert Path(result["result"]["file_path"]).exists()
     assert dummy_task.states[0]["state"] == "STARTED"
 
