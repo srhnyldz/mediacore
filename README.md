@@ -25,6 +25,16 @@ YLZ MediaCore is a Docker-first backend foundation for a future SaaS product tha
 2. Build and start the stack with `docker compose up --build`.
 3. Open the API docs at `http://localhost:8000/docs`.
 
+## Local Validation
+
+- Create a virtual environment with `make venv`
+- Install dependencies with `make install`
+- Run the unit test suite with `make test`
+- Run syntax validation with `make compile`
+- Start the full stack with `make up`
+- Run an API smoke flow with `make smoke URL="https://example.com/video"`
+- Stop the stack with `make down`
+
 ## Core Endpoints
 
 - `POST /api/v1/tasks/downloads`: enqueue a new download task
@@ -32,9 +42,8 @@ YLZ MediaCore is a Docker-first backend foundation for a future SaaS product tha
 
 ## Versioning
 
-This repository currently starts at `v0.1.0` and follows `MAJOR.MINOR.PATCH`.
+This repository is currently at `v0.2.0` and follows `MAJOR.MINOR.PATCH`.
 
 ## Legal Notice
 
 This project is provided for lawful use only. You are solely responsible for ensuring that any media download, conversion, storage, or redistribution complies with applicable laws, platform terms of service, copyright rules, and any required permissions in your jurisdiction.
-
