@@ -1,7 +1,7 @@
 PYTHON ?= $(if $(wildcard .venv/bin/python),.venv/bin/python,python3)
 COMPOSE ?= docker compose
 
-.PHONY: venv install test compile up down logs smoke
+.PHONY: venv install test compile up down logs smoke cleanup
 
 venv:
 	python3 -m venv .venv
@@ -26,3 +26,6 @@ logs:
 
 smoke:
 	$(PYTHON) scripts/smoke_task_flow.py --url "$(URL)"
+
+cleanup:
+	$(PYTHON) scripts/cleanup_downloads.py

@@ -41,6 +41,8 @@ YLZ MediaCore is a Docker-first backend foundation for a future SaaS product tha
 
 - `POST /api/v1/tasks/downloads`: enqueue a new download task
 - `GET /api/v1/tasks/{task_id}`: fetch the current task status and result metadata
+- `GET /health`: lightweight liveness endpoint for orchestration
+- `GET /ready`: readiness probe with Redis and shared storage checks
 
 ## Web MVP
 
@@ -49,9 +51,22 @@ YLZ MediaCore is a Docker-first backend foundation for a future SaaS product tha
 - Watch the task status and progress without leaving the page
 - Inspect returned file metadata, failure details, and a direct download link
 
+## Runtime Hardening
+
+- Redis-backed per-client rate limiting protects the download creation endpoint
+- Celery task time limits and worker recycling reduce stuck-process risk
+- Docker health checks are defined for `api` and `redis`
+- Shared download storage can be cleaned with `make cleanup` or a scheduled container job
+
+## Cleanup Workflow
+
+- Local cleanup: run `make cleanup`
+- Container cleanup: run `docker compose exec worker python scripts/cleanup_downloads.py`
+- Recommended production schedule: execute the cleanup script from a Coolify cron job against the worker image
+
 ## Versioning
 
-This repository is currently at `v0.3.0` and follows `MAJOR.MINOR.PATCH`.
+This repository is currently at `v0.4.0` and follows `MAJOR.MINOR.PATCH`.
 
 ## Legal Notice
 

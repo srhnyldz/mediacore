@@ -11,6 +11,37 @@ def test_frontend_route_returns_html(test_client: TestClient) -> None:
     assert "YLZ MediaCore" in response.text
 
 
+def test_ready_route_returns_ready_payload(monkeypatch, test_client: TestClient) -> None:
+    monkeypatch.setattr(
+        "app.main.get_readiness_status",
+        lambda: {
+            "status": "ready",
+            "version": "v0.3.0",
+            "checks": {"redis": {"ok": True}, "storage": {"ok": True}},
+        },
+    )
+
+    response = test_client.get("/ready")
+
+    assert response.status_code == 200
+    assert response.json()["status"] == "ready"
+
+
+def test_ready_route_returns_503_when_degraded(monkeypatch, test_client: TestClient) -> None:
+    monkeypatch.setattr(
+        "app.main.get_readiness_status",
+        lambda: {
+            "status": "degraded",
+            "version": "v0.3.0",
+            "checks": {"redis": {"ok": False}},
+        },
+    )
+
+    response = test_client.get("/ready")
+
+    assert response.status_code == 503
+
+
 def test_create_download_task_returns_accepted(
     monkeypatch,
     test_client: TestClient,
@@ -29,6 +60,10 @@ def test_create_download_task_returns_accepted(
         "app.api.v1.endpoints.tasks.enqueue_download_task",
         fake_enqueue_download_task,
     )
+    monkeypatch.setattr(
+        "app.api.v1.endpoints.tasks.enforce_download_rate_limit",
+        lambda request: None,
+    )
 
     response = test_client.post(
         "/api/v1/tasks/downloads",
@@ -38,6 +73,26 @@ def test_create_download_task_returns_accepted(
     assert response.status_code == 202
     assert response.json()["task_id"] == "task-123"
     assert captured["payload"].output_format == "avi"
+
+
+def test_create_download_task_returns_429_when_rate_limited(
+    monkeypatch,
+    test_client: TestClient,
+) -> None:
+    from app.services.rate_limit_service import RateLimitExceededError
+
+    monkeypatch.setattr(
+        "app.api.v1.endpoints.tasks.enforce_download_rate_limit",
+        lambda request: (_ for _ in ()).throw(RateLimitExceededError(30)),
+    )
+
+    response = test_client.post(
+        "/api/v1/tasks/downloads",
+        json={"url": "https://www.youtube.com/watch?v=dQw4w9WgXcQ"},
+    )
+
+    assert response.status_code == 429
+    assert response.headers["Retry-After"] == "30"
 
 
 def test_fetch_task_status_returns_not_found(

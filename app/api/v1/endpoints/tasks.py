@@ -1,6 +1,6 @@
 from pathlib import Path
 
-from fastapi import APIRouter, HTTPException, status
+from fastapi import APIRouter, HTTPException, Request, Response, status
 from fastapi.responses import FileResponse
 
 from app.core.config import settings
@@ -8,6 +8,10 @@ from app.schemas.task import (
     DownloadTaskAcceptedResponse,
     DownloadTaskRequest,
     TaskStatusResponse,
+)
+from app.services.rate_limit_service import (
+    RateLimitExceededError,
+    enforce_download_rate_limit,
 )
 from app.services.task_service import (
     TaskNotFoundError,
@@ -25,10 +29,20 @@ router = APIRouter(prefix="/tasks", tags=["tasks"])
     status_code=status.HTTP_202_ACCEPTED,
 )
 async def create_download_task(
+    request: Request,
+    response: Response,
     payload: DownloadTaskRequest,
 ) -> DownloadTaskAcceptedResponse:
     try:
+        enforce_download_rate_limit(request=request)
         return enqueue_download_task(payload)
+    except RateLimitExceededError as exc:
+        response.headers["Retry-After"] = str(exc.retry_after_seconds)
+        raise HTTPException(
+            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+            detail=str(exc),
+            headers={"Retry-After": str(exc.retry_after_seconds)},
+        ) from exc
     except Exception as exc:  # pragma: no cover - son savunma katmani
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,

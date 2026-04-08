@@ -18,6 +18,5 @@
 
 ## Faz 4 - SaaS Katmani
 - Kimlik dogrulama ve tenant yapisi eklenecek
-- Plan / kota / rate limit mekanizmalari eklenecek
+- Plan / kota mekanizmalari eklenecek
 - Gozlemlenebilirlik, loglama ve metrik katmani genisletilecek
-

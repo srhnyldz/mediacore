@@ -21,4 +21,5 @@ YLZ MediaCore, sosyal medya platformlarindan video ve resim indirip ilerleyen fa
 - Worker'lar stateless kalir; kalici gorev durumu Redis result backend'de tutulur
 - Gorev kuyruklari simdiden `download` ve `convert` olarak ayrilir
 - Her gorev `/tmp/downloads/<task_id>/` altinda izole calisir
-
+- Download olusturma akisinda Redis tabanli basit bir rate limit korumasi bulunur
+- Gecici dosyalar ayrik bir cleanup isi ile periyodik olarak temizlenmeye hazir yapidadir

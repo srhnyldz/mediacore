@@ -11,9 +11,19 @@ services:
       - "8000:8000"
     volumes:
       - downloads_data:/tmp/downloads
+    healthcheck:
+      test:
+        - CMD
+        - python
+        - -c
+        - import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health', timeout=5)
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 15s
     depends_on:
       redis:
-        condition: service_started
+        condition: service_healthy
     command:
       - uvicorn
       - app.main:app
@@ -34,7 +44,7 @@ services:
       - downloads_data:/tmp/downloads
     depends_on:
       redis:
-        condition: service_started
+        condition: service_healthy
     command:
       - celery
       - -A
@@ -51,8 +61,15 @@ services:
       - "6379:6379"
     volumes:
       - redis_data:/data
+    healthcheck:
+      test:
+        - CMD
+        - redis-cli
+        - ping
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
 volumes:
   downloads_data:
   redis_data:
-

@@ -2,6 +2,18 @@
 
 Bu proje [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) yaklaşımına benzer sade bir format kullanır.
 
+## [0.4.0] - 2026-04-08
+
+### Added
+- Redis tabanli rate limit servisi ve `GET /ready` readiness endpoint'i eklendi.
+- Gecici indirme klasorleri icin cleanup servisi, Celery maintenance task'i ve script giris noktasi eklendi.
+- Step 04 production hardening dokumani, cleanup testleri ve rate limit testleri eklendi.
+
+### Changed
+- Celery tarafina task time limit, visibility timeout ve worker recycle ayarlari eklendi.
+- Docker Compose icine `api` ve `redis` healthcheck tanimlari eklendi.
+- Surum okuma mantigi `.env` drift'inden etkilenmeyecek sekilde `VERSION` dosyasina sabitlendi.
+
 ## [0.3.0] - 2026-04-08
 
 ### Fixed
