@@ -1,3 +1,4 @@
+from pathlib import Path
 from typing import Any
 
 from celery import states
@@ -12,6 +13,8 @@ from app.schemas.task import (
     TaskStatusResponse,
 )
 from app.tasks.downloader import download_task
+
+TERMINAL_FAILURE_STATES = {states.FAILURE, "ERROR"}
 
 
 class TaskNotFoundError(Exception):
@@ -56,7 +59,7 @@ def get_task_status(task_id: str) -> TaskStatusResponse:
     state = meta.get("status", states.PENDING)
     payload = meta.get("result")
 
-    if state == states.FAILURE:
+    if state in TERMINAL_FAILURE_STATES:
         return _build_failure_response(task_id=task_id, payload=payload)
 
     response_payload = payload if isinstance(payload, dict) else {}
@@ -86,9 +89,9 @@ def _build_failure_response(task_id: str, payload: Any) -> TaskStatusResponse:
     if isinstance(payload, dict):
         return TaskStatusResponse(
             task_id=task_id,
-            status=states.FAILURE,
-            progress_percent=int(payload.get("progress_percent", 0)),
-            message=payload.get("message", "Indirme basarisiz oldu."),
+        status=states.FAILURE,
+        progress_percent=int(payload.get("progress_percent", 0)),
+        message=payload.get("message", "Indirme basarisiz oldu."),
             result=_build_result(payload.get("result")),
             error_code=payload.get("error_code", "DOWNLOAD_FAILED"),
             error_message=payload.get("error_message", "Bilinmeyen indirme hatasi."),
@@ -107,7 +110,16 @@ def _build_failure_response(task_id: str, payload: Any) -> TaskStatusResponse:
 def _build_result(payload: Any) -> DownloadTaskResult | None:
     if not isinstance(payload, dict):
         return None
-    return DownloadTaskResult.model_validate(payload)
+
+    normalized_payload = dict(payload)
+    file_name = normalized_payload.get("file_name")
+    file_path = normalized_payload.get("file_path")
+    task_id = _extract_task_id_from_path(file_path)
+
+    if task_id and file_name:
+        normalized_payload["download_url"] = f"{settings.api_prefix}/tasks/{task_id}/download"
+
+    return DownloadTaskResult.model_validate(normalized_payload)
 
 
 def _default_message_for_state(state: str) -> str:
@@ -117,6 +129,24 @@ def _default_message_for_state(state: str) -> str:
         TaskState.PROGRESS.value: "Gorev isleniyor.",
         TaskState.SUCCESS.value: "Gorev tamamlandi.",
         TaskState.FAILURE.value: "Gorev basarisiz oldu.",
+        "ERROR": "Gorev basarisiz oldu.",
     }
     return messages.get(state, "Gorev durumu alindi.")
 
+
+def _extract_task_id_from_path(file_path: Any) -> str | None:
+    if not isinstance(file_path, str):
+        return None
+
+    try:
+        path_obj = Path(file_path)
+        download_root = Path(settings.download_root)
+        relative_path = path_obj.relative_to(download_root)
+    except (ValueError, TypeError):
+        return None
+
+    parts = relative_path.parts
+    if not parts:
+        return None
+
+    return parts[0]

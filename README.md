@@ -5,6 +5,7 @@ YLZ MediaCore is a Docker-first backend foundation for a future SaaS product tha
 ## Highlights
 
 - FastAPI-based API service for accepting download requests
+- Browser-based control panel served directly from FastAPI
 - Celery worker service separated from the API process
 - Redis used as broker and result backend
 - `yt-dlp` integration for media retrieval
@@ -23,7 +24,8 @@ YLZ MediaCore is a Docker-first backend foundation for a future SaaS product tha
 
 1. Copy `.env.example` to `.env`.
 2. Build and start the stack with `docker compose up --build`.
-3. Open the API docs at `http://localhost:8000/docs`.
+3. Open the web panel at `http://localhost:8000/`.
+4. Open the API docs at `http://localhost:8000/docs`.
 
 ## Local Validation
 
@@ -40,9 +42,16 @@ YLZ MediaCore is a Docker-first backend foundation for a future SaaS product tha
 - `POST /api/v1/tasks/downloads`: enqueue a new download task
 - `GET /api/v1/tasks/{task_id}`: fetch the current task status and result metadata
 
+## Web MVP
+
+- Submit media URLs from a browser form
+- Choose optional platform hint and output format fields
+- Watch the task status and progress without leaving the page
+- Inspect returned file metadata, failure details, and a direct download link
+
 ## Versioning
 
-This repository is currently at `v0.2.0` and follows `MAJOR.MINOR.PATCH`.
+This repository is currently at `v0.3.0` and follows `MAJOR.MINOR.PATCH`.
 
 ## Legal Notice
 

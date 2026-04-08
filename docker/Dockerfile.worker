@@ -10,7 +10,8 @@ COPY requirements.txt .
 
 # Worker katmaninda ffmpeg zorunlu oldugu icin sistem paketini kuruyoruz.
 RUN apt-get update \
-    && apt-get install -y --no-install-recommends ffmpeg \
+    && apt-get install -y --no-install-recommends ca-certificates ffmpeg \
+    && update-ca-certificates \
     && rm -rf /var/lib/apt/lists/* \
     && pip install --upgrade pip \
     && pip install -r requirements.txt
@@ -19,4 +20,3 @@ COPY app ./app
 COPY VERSION ./VERSION
 
 CMD ["celery", "-A", "app.workers.worker.celery_app", "worker", "--loglevel=info", "--queues=download,convert"]
-

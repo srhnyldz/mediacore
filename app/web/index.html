@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>YLZ MediaCore</title>
+    <link rel="stylesheet" href="/assets/styles.css" />
+  </head>
+  <body>
+    <div class="page-shell">
+      <div class="background-orb orb-one"></div>
+      <div class="background-orb orb-two"></div>
+
+      <header class="hero">
+        <p class="eyebrow">YLZ MediaCore</p>
+        <h1>Download workflows with a backend-first control panel.</h1>
+        <p class="hero-copy">
+          Submit a media URL, watch the task progress in real time, and inspect
+          the generated file metadata from the same screen.
+        </p>
+      </header>
+
+      <main class="dashboard">
+        <section class="panel form-panel">
+          <div class="panel-heading">
+            <p class="panel-kicker">Task Intake</p>
+            <h2>Create a download job</h2>
+          </div>
+
+          <form id="download-form" class="download-form">
+            <label class="field">
+              <span>Media URL</span>
+              <input
+                id="url"
+                name="url"
+                type="url"
+                placeholder="https://www.youtube.com/watch?v=..."
+                required
+              />
+            </label>
+
+            <div class="field-grid">
+              <label class="field">
+                <span>Platform Hint</span>
+                <select id="platform_hint" name="platform_hint">
+                  <option value="">Auto detect</option>
+                  <option value="youtube">YouTube</option>
+                  <option value="instagram">Instagram</option>
+                  <option value="twitter">Twitter / X</option>
+                  <option value="facebook">Facebook</option>
+                  <option value="linkedin">LinkedIn</option>
+                </select>
+              </label>
+
+              <label class="field">
+                <span>Output Format</span>
+                <select id="output_format" name="output_format">
+                  <option value="avi" selected>AVI</option>
+                  <option value="mp4">MP4</option>
+                  <option value="mp3">MP3</option>
+                  <option value="webm">WEBM</option>
+                  <option value="wav">WAV</option>
+                </select>
+              </label>
+            </div>
+
+            <button id="submit-button" class="submit-button" type="submit">
+              Start Download Task
+            </button>
+          </form>
+        </section>
+
+        <section class="panel status-panel">
+          <div class="panel-heading">
+            <p class="panel-kicker">Task Monitor</p>
+            <h2>Live task status</h2>
+          </div>
+
+          <div id="empty-state" class="empty-state">
+            <p>No task submitted yet.</p>
+            <span>Your next download will appear here with live progress.</span>
+          </div>
+
+          <div id="task-card" class="task-card hidden">
+            <div class="task-row">
+              <span class="task-label">Task ID</span>
+              <code id="task-id">-</code>
+            </div>
+            <div class="task-row">
+              <span class="task-label">Status</span>
+              <span id="task-status" class="status-badge status-pending">PENDING</span>
+            </div>
+            <div class="task-row">
+              <span class="task-label">Message</span>
+              <span id="task-message">Waiting for task creation.</span>
+            </div>
+
+            <div class="progress-block">
+              <div class="progress-track">
+                <div id="progress-bar" class="progress-bar"></div>
+              </div>
+              <div class="progress-meta">
+                <span>Progress</span>
+                <strong id="task-progress">0%</strong>
+              </div>
+            </div>
+
+            <div id="result-card" class="result-card hidden">
+              <h3>Result Metadata</h3>
+              <a
+                id="result-download-link"
+                class="download-link hidden"
+                href="#"
+                download
+              >
+                Download File
+              </a>
+              <dl class="result-grid">
+                <div>
+                  <dt>File Name</dt>
+                  <dd id="result-file-name">-</dd>
+                </div>
+                <div>
+                  <dt>File Size</dt>
+                  <dd id="result-file-size">-</dd>
+                </div>
+                <div>
+                  <dt>File Path</dt>
+                  <dd id="result-file-path">-</dd>
+                </div>
+                <div>
+                  <dt>Source URL</dt>
+                  <dd id="result-source-url">-</dd>
+                </div>
+              </dl>
+            </div>
+
+            <div id="error-card" class="error-card hidden">
+              <h3>Failure Details</h3>
+              <p id="error-code">-</p>
+              <p id="error-message">-</p>
+            </div>
+          </div>
+        </section>
+      </main>
+    </div>
+
+    <script src="/assets/app.js" defer></script>
+  </body>
+</html>

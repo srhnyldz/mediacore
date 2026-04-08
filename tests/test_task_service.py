@@ -72,4 +72,26 @@ def test_get_task_status_returns_success_payload(monkeypatch) -> None:
     assert response.status == states.SUCCESS
     assert response.result is not None
     assert response.result.file_name == "video.mp4"
+    assert response.result.download_url == "/api/v1/tasks/task-123/download"
 
+
+def test_get_task_status_maps_error_state_to_failure(monkeypatch) -> None:
+    monkeypatch.setattr(
+        task_service.celery_app.backend,
+        "get_task_meta",
+        lambda _task_id: {
+            "status": "ERROR",
+            "result": {
+                "progress_percent": 0,
+                "message": "Indirme basarisiz oldu.",
+                "error_code": "DOWNLOAD_FAILED",
+                "error_message": "yt-dlp failure",
+                "result": None,
+            },
+        },
+    )
+
+    response = task_service.get_task_status("task-err")
+
+    assert response.status == states.FAILURE
+    assert response.error_code == "DOWNLOAD_FAILED"
